@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace MusicApp
 {
-    public class DataStructure
+    public class UserSearch
     {
+        public string Query { get; set; }
 
     }
 }
