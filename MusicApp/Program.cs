@@ -8,8 +8,8 @@ namespace MusicApp
     {
         static void Main(string[] args)
         {
-            string textFilePath = "C:\\MusicTestData\\condensed_data.txt";
-            string audioFilePath = "C:\\MusicTestData\\Rick Astley - Never Gonna Give You Up (Official Music Video).wav";
+            string textFilePath = @"..\..\..\condensed_data.txt";
+            string audioFilePath = @"..\..\..\Rick Astley - Never Gonna Give You Up (Official Music Video).wav";
 
             TrackInfo trackInfo = LoadTrackInfoFromTextFile(textFilePath);
 
