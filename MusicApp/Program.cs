@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Media;
+using System.Text.Json;
 
 namespace MusicApp
 {
@@ -8,10 +9,10 @@ namespace MusicApp
     {
         static void Main(string[] args)
         {
-            string textFilePath = @"..\..\..\condensed_data.txt";
+            string jsonFilePath = @"..\..\..\metadata.json";
             string audioFilePath = @"..\..\..\Rick Astley - Never Gonna Give You Up (Official Music Video).wav";
 
-            TrackInfo trackInfo = LoadTrackInfoFromTextFile(textFilePath);
+            TrackInfo trackInfo = LoadTrackInfoFromJsonFile(jsonFilePath);
 
             if (trackInfo != null)
             {
@@ -26,32 +27,39 @@ namespace MusicApp
             }
         }
 
-        public static TrackInfo LoadTrackInfoFromTextFile(string filePath)
+        public static TrackInfo LoadTrackInfoFromJsonFile(string filePath)
         {
             try
             {
-                string[] lines = File.ReadAllLines(filePath);
+                string jsonString = File.ReadAllText(filePath);
 
-                if (lines.Length < 7) 
+                using (JsonDocument document = JsonDocument.Parse(jsonString))
                 {
-                    Console.WriteLine("The text file does not contain enough information.");
-                    return null;
+                    string title = document.RootElement.GetProperty("title").GetString();
+                    string artist = document.RootElement.GetProperty("uploader").GetString();
+                    string url = document.RootElement.GetProperty("uploader_url").GetString();
+                    double durationInSeconds = document.RootElement.GetProperty("duration").GetDouble();
+                    TimeSpan duration = TimeSpan.FromSeconds(durationInSeconds);
+                    string dateString = document.RootElement.GetProperty("upload_date").GetString();
+                    DateOnly date = DateOnly.ParseExact(dateString, "yyyyMMdd");
+                    string uniqueId = document.RootElement.GetProperty("id").GetString();
+                    string thumbnail = document.RootElement.GetProperty("thumbnail").GetString();
+
+                    return new TrackInfo
+                    {
+                        Title = title,
+                        Artist = artist,
+                        Duration = duration,
+                        Url = url,
+                        Date = date,
+                        UniqueId = uniqueId,
+                        Thumbnail = thumbnail
+                    };
                 }
-
-                return new TrackInfo
-                {
-                    Title = lines[0],
-                    Artist = lines[1], 
-                    Duration = TimeSpan.FromSeconds(double.Parse(lines[2])),
-                    Url = lines[3],
-                    Date = DateOnly.ParseExact(lines[4], "yyyyMMdd"),
-                    UniqueId = lines[5],
-                    Thumbnail = lines[6]
-                };
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error reading text file: {ex.Message}");
+                Console.WriteLine($"Error reading JSON file: {ex.Message}");
                 return null;
             }
         }
@@ -80,11 +88,11 @@ namespace MusicApp
                     soundPlayer.Stop();
                 }
             }
+
             else
             {
                 Console.WriteLine("Audio file not found.");
             }
-
             player.Stop();
         }
     }
