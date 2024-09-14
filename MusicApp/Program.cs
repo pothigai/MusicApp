@@ -2,6 +2,7 @@
 using System.IO;
 using System.Media;
 using System.Text.Json;
+using System.Diagnostics;
 
 namespace MusicApp
 {
@@ -10,23 +11,84 @@ namespace MusicApp
         static void Main(string[] args)
         {
             string jsonFilePath = @"..\..\..\metadata.json";
-            string audioFilePath = @"..\..\..\Rick Astley - Never Gonna Give You Up (Official Music Video).wav";
 
+            Console.WriteLine("Enter the YouTube URL: ");
+
+            string InputURL = Console.ReadLine();
+            string outputFile = "downloaded_audio.wav";
             TrackInfo trackInfo = LoadTrackInfoFromJsonFile(jsonFilePath);
 
             if (trackInfo != null)
             {
                 DisplayTrackInfo(trackInfo);
-                Player player = new Player();
-                player.Play(trackInfo);
-                PlayAudio(audioFilePath, player);
             }
             else
             {
                 Console.WriteLine("Failed to load track info.");
             }
+
+            Audio(InputURL, outputFile);
+            PlayAudio(outputFile);
         }
 
+        static void Audio(string url, string outputFile)
+        {
+            string command = $"-x --audio-format wav -o \"{outputFile}\" {url}";
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = "yt-dlp",
+                Arguments = command,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            try
+            {
+                using (Process process = Process.Start(psi))
+                {
+                    string output = process.StandardOutput.ReadToEnd();
+                    string error = process.StandardError.ReadToEnd();
+                    process.WaitForExit();
+
+                    if (!string.IsNullOrEmpty(error))
+                    {
+                        Console.WriteLine("yt-dlp error: ");
+                        Console.WriteLine(error);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error downloading audio: " + ex.Message);
+            }
+        }
+
+        static void PlayAudio(string filePath)
+        {
+            if (File.Exists(filePath))
+            {
+                try
+                {
+                    using (SoundPlayer player = new SoundPlayer(filePath))
+                    {
+                        Console.WriteLine("Playing audio....Press any key to stop");
+                        player.Play();
+                        Console.ReadKey();
+                        player.Stop();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error playing audioL: " + ex.Message);
+                }
+            }
+            else
+            {
+                Console.WriteLine("File not found: " + filePath);
+            }
+        }
         public static TrackInfo LoadTrackInfoFromJsonFile(string filePath)
         {
             try
@@ -74,26 +136,6 @@ namespace MusicApp
             Console.WriteLine($"Unique ID: {track.UniqueId}");
             Console.WriteLine($"Thumbnail: {track.Thumbnail}");
             Console.WriteLine($"Date: {track.Date}");
-        }
-
-        public static void PlayAudio(string audioFilePath, Player player)
-        {
-            if (File.Exists(audioFilePath))
-            {
-                using (var soundPlayer = new SoundPlayer(audioFilePath))
-                {
-                    soundPlayer.Play();
-                    Console.WriteLine("Playing... Press any key to force close.");
-                    Console.ReadKey();
-                    soundPlayer.Stop();
-                }
-            }
-
-            else
-            {
-                Console.WriteLine("Audio file not found.");
-            }
-            player.Stop();
         }
     }
 }
