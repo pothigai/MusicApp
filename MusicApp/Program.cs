@@ -3,6 +3,7 @@ using System.IO;
 using System.Media;
 using System.Text.Json;
 using System.Diagnostics;
+using System.IO.Enumeration;
 
 namespace MusicApp
 {
@@ -10,13 +11,13 @@ namespace MusicApp
     {
         static void Main(string[] args)
         {
-            string jsonFilePath = @"..\..\..\metadata.json";
 
             Console.WriteLine("Enter the YouTube URL: ");
 
             string InputURL = Console.ReadLine();
-            string outputFile = "downloaded_audio.wav";
-            TrackInfo trackInfo = LoadTrackInfoFromJsonFile(jsonFilePath);
+            string downloadPath = Audio(InputURL);
+            string jsonMetadata = GetYouTubeMetadata(InputURL);
+            TrackInfo trackInfo = LoadTrackInfoFromJsonString(jsonMetadata);
 
             if (trackInfo != null)
             {
@@ -27,13 +28,15 @@ namespace MusicApp
                 Console.WriteLine("Failed to load track info.");
             }
 
-            Audio(InputURL, outputFile);
-            PlayAudio(outputFile);
+            Audio(InputURL);
+            PlayAudio(downloadPath);
         }
 
-        static void Audio(string url, string outputFile)
+        static string Audio(string url)
         {
-            string command = $"-x --audio-format wav -o \"{outputFile}\" {url}";
+            string outputTemplate = "%(title)s.%(ext)s";
+            string command = $"-x --audio-format wav -o \"{outputTemplate}\" {url}";
+
             ProcessStartInfo psi = new ProcessStartInfo
             {
                 FileName = "yt-dlp",
@@ -57,14 +60,47 @@ namespace MusicApp
                         Console.WriteLine("yt-dlp error: ");
                         Console.WriteLine(error);
                     }
+
+                    string downloadedFile = GetDownloadedFilePath(url);
+                    return downloadedFile;
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Error downloading audio: " + ex.Message);
+                return null;
             }
+
         }
 
+        static string GetDownloadedFilePath(string url)
+        {
+            string command = $"-e {url}";
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = "yt-dlp",
+                Arguments = command,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            try
+            {
+                using (Process process = Process.Start(psi))
+                {
+                    string title = process.StandardOutput.ReadToEnd().Trim();
+                    process.WaitForExit();
+                    string fileName = $"{title}.wav";
+                    return fileName;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error:" + ex.Message);
+                return null;
+            }
+        }
         static void PlayAudio(string filePath)
         {
             if (File.Exists(filePath))
@@ -89,12 +125,31 @@ namespace MusicApp
                 Console.WriteLine("File not found: " + filePath);
             }
         }
-        public static TrackInfo LoadTrackInfoFromJsonFile(string filePath)
+
+        static string GetYouTubeMetadata(string url)
+        {
+            var processStartInfo = new ProcessStartInfo
+            {
+                FileName = "yt-dlp",
+                Arguments = $"--dump-json {url}",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using (var process = new Process { StartInfo = processStartInfo })
+            {
+                process.Start();
+                string output = process.StandardOutput.ReadToEnd();
+                process.WaitForExit();
+                return output;
+            }
+        }
+
+        public static TrackInfo LoadTrackInfoFromJsonString(string jsonString)
         {
             try
             {
-                string jsonString = File.ReadAllText(filePath);
-
                 using (JsonDocument document = JsonDocument.Parse(jsonString))
                 {
                     string title = document.RootElement.GetProperty("title").GetString();
@@ -103,7 +158,7 @@ namespace MusicApp
                     double durationInSeconds = document.RootElement.GetProperty("duration").GetDouble();
                     TimeSpan duration = TimeSpan.FromSeconds(durationInSeconds);
                     string dateString = document.RootElement.GetProperty("upload_date").GetString();
-                    DateOnly date = DateOnly.ParseExact(dateString, "yyyyMMdd");
+                    DateOnly uploadDate = DateOnly.ParseExact(dateString, "yyyyMMdd", null);
                     string uniqueId = document.RootElement.GetProperty("id").GetString();
                     string thumbnail = document.RootElement.GetProperty("thumbnail").GetString();
 
@@ -113,7 +168,7 @@ namespace MusicApp
                         Artist = artist,
                         Duration = duration,
                         Url = url,
-                        Date = date,
+                        Date = uploadDate,
                         UniqueId = uniqueId,
                         Thumbnail = thumbnail
                     };
@@ -121,7 +176,7 @@ namespace MusicApp
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error reading JSON file: {ex.Message}");
+                Console.WriteLine($"Error parsing JSON metadata: {ex.Message}");
                 return null;
             }
         }
