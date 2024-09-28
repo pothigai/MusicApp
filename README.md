@@ -17,4 +17,4 @@
  - Search for System.Windows.Extensions and install it.
 
    You can now run the code and it should take a YouTube URL as an input and play audio and display relevant information about the audio.
-   For now you will still need to download the metadata.JSON file into the project folder.
+
