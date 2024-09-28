@@ -15,24 +15,23 @@ namespace MusicApp
             Console.WriteLine("Enter the YouTube URL: ");
 
             string InputURL = Console.ReadLine();
-            string downloadPath = Audio(InputURL);
+            string downloadPath = DownloadAudio(InputURL);
             string jsonMetadata = GetYouTubeMetadata(InputURL);
             TrackInfo trackInfo = LoadTrackInfoFromJsonString(jsonMetadata);
 
             if (trackInfo != null)
             {
                 DisplayTrackInfo(trackInfo);
+                PlayAudio(downloadPath);
             }
             else
             {
                 Console.WriteLine("Failed to load track info.");
             }
 
-            Audio(InputURL);
-            PlayAudio(downloadPath);
         }
 
-        static string Audio(string url)
+        static string DownloadAudio(string url)
         {
             string outputTemplate = "%(title)s.%(ext)s";
             string command = $"-x --audio-format wav -o \"{outputTemplate}\" {url}";
