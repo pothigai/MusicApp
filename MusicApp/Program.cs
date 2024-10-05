@@ -4,17 +4,26 @@ using System.Media;
 using System.Text.Json;
 using System.Diagnostics;
 using System.IO.Enumeration;
+using MusicApp;
 
 namespace MusicApp
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
 
-            Console.WriteLine("Enter the YouTube URL: ");
+            Console.Write("Enter a search term: ");
+            string searchTerm = Console.ReadLine();
 
-            string InputURL = Console.ReadLine();
+            UserSearch searcher = new UserSearch();
+            string InputURL = await searcher.DisplayResults(searchTerm);
+
+            if (!string.IsNullOrEmpty(InputURL))
+            {
+                Console.Write($"This is your selected URL: {InputURL}\n");
+            }
+
             string downloadPath = DownloadAudio(InputURL);
             string jsonMetadata = GetYouTubeMetadata(InputURL);
             TrackInfo trackInfo = LoadTrackInfoFromJsonString(jsonMetadata);
