@@ -15,6 +15,10 @@
  - Click on solution explorer.
  - Select manage NuGet packages.
  - Search for System.Windows.Extensions and install it.
+3. Installing the Google API client library for .NET
+ - In visual studio, under your Package Manager Console, enter the following command:
+   Install-Package Google.Apis.YouTube.v3
+ - Once it's done installing, you should be able to access Google APIs for the search results.
 
-   You can now run the code and it should take a YouTube URL as an input and play audio and display relevant information about the audio.
+   You can now run the code and enter a search key as an input. The code then uses this search key and Google API to display 50 results. You then enter the desired result number and the code will play audio and display relevant information about the audio.
 
